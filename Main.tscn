@@ -110,7 +110,7 @@ func add_circle_lighter(cell:Vector2, distance:int):
 				flag4 = false
 				
 			for i in range(len(obsts1)):
-				if (phi_x > obsts1[i] and phi_y > obsts2[i]):
+				if (phi_x >= obsts1[i] and phi_y >= obsts2[i]):
 					match quarts[i]:
 						3:
 							flag3 = false
@@ -186,7 +186,7 @@ func add_rhombous_lighter(cell:Vector2, distance:int):
 				flag4 = false
 				
 			for i in range(len(obsts1)):
-				if (phi_x > obsts1[i] and phi_y > obsts2[i]):
+				if (phi_x >= obsts1[i] and phi_y >= obsts2[i]):
 					match quarts[i]:
 						3:
 							flag3 = false
@@ -247,7 +247,7 @@ func add_direct_lighter(cell:Vector2, distance:int, angle:float):
 				
 			if y < x*tan(angle/2):
 				for i in range(len(obsts1)):
-					if phi_x > obsts1[i] and phi_y > obsts2[i]:
+					if phi_x >= obsts1[i] and phi_y >= obsts2[i]:
 						match parts[i]:
 							1:
 								flag1 = false
@@ -255,13 +255,13 @@ func add_direct_lighter(cell:Vector2, distance:int, angle:float):
 								flag2 = false
 				
 				if flag1:
-					light_cell(Vector2(x+x0, y+y0), (distance-x)/float(distance))
+					light_cell(Vector2(x+x0, y+y0), max((distance-x-y)/float(distance), 0.0))
 					
 				if flag2 and y != 0:
-					light_cell(Vector2(x+x0, -y+y0), (distance-x)/float(distance))
+					light_cell(Vector2(x+x0, -y+y0), max((distance-x-y)/float(distance), 0.0))
 
 func _process(delta):
-		
+	
 	if Input.is_action_pressed(\"mouse_right\"):
 		obstacles.append(pixel2cell(get_local_mouse_position()))
 		
