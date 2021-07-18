@@ -1,4 +1,6 @@
-[gd_scene load_steps=2 format=2]
+[gd_scene load_steps=4 format=2]
+
+[ext_resource path="res://bin/gdexample.gdns" type="Script" id=1]
 
 [sub_resource type="GDScript" id=1]
 script/source = "extends Node2D
@@ -60,9 +62,9 @@ func check_visible(start:Vector2, goal:Vector2, obsts):
 func add_circle_lighter(cell:Vector2, distance:int):
 	var x0:int = cell.x
 	var y0:int = cell.y
-	var obsts1 = []
-	var obsts2 = []
-	var quarts = []
+	var obsts1:PoolRealArray = PoolRealArray()
+	var obsts2:PoolRealArray = PoolRealArray()
+	var quarts:PoolIntArray = PoolIntArray()
 	
 	var flag1:bool
 	var flag2:bool
@@ -120,8 +122,9 @@ func add_circle_lighter(cell:Vector2, distance:int):
 							flag2 = false
 						4:
 							flag4 = false
-							
+			
 			var lights = (distance - point_distance(Vector2(x0, y0), Vector2(x+x0, y+y0)))/distance
+#			var lights = 1.0
 			if x != 0:
 				if flag3:
 					light_cell(Vector2(x+x0, y+y0), lights)
@@ -260,10 +263,13 @@ func add_direct_lighter(cell:Vector2, distance:int, angle:float):
 				if flag2 and y != 0:
 					light_cell(Vector2(x+x0, -y+y0), max((distance-x-y)/float(distance), 0.0))
 
+
 func _process(delta):
-	
+	return # Pretty switcher between Gdscript and c++ implementations ;)
 	if Input.is_action_pressed(\"mouse_right\"):
-		obstacles.append(pixel2cell(get_local_mouse_position()))
+		if not pixel2cell(get_local_mouse_position()) in obstacles:
+			obstacles.append(pixel2cell(get_local_mouse_position()))
+			print(obstacles.size())
 		
 	if Input.is_action_just_pressed(\"ui_select\"):
 		clear_lights()
@@ -276,9 +282,9 @@ func _process(delta):
 	
 	clear_lights()
 	# ctrl + k
-#	add_circle_lighter(pixel2cell(get_local_mouse_position()), 25)
+	add_circle_lighter(pixel2cell(get_local_mouse_position()), 40)
 #	add_rhombous_lighter(pixel2cell(get_local_mouse_position()), 40)
-	add_direct_lighter(pixel2cell(get_local_mouse_position()), 80, PI/4)
+#	add_direct_lighter(pixel2cell(get_local_mouse_position()), 30, 0.8*PI)
 	
 	update()
 
@@ -287,9 +293,10 @@ func _ready():
 	VisualServer.canvas_item_set_parent(surf, get_canvas_item())
 
 func _draw():
+	return
 	for i in obstacles:
 		draw_rect(Rect2(cell2pixel(i), Vector2(1, 1)*cell_size), Color.red)
-		
+
 	draw_rect(Rect2(cell2pixel(pixel2cell(get_local_mouse_position())), Vector2(1, 1)*cell_size), Color.blue)
 	
 func cell2pixel(cell:Vector2):
@@ -308,12 +315,39 @@ func in_map(cell):
 	return cell.x > 0 and cell.x < map_width and cell.y > 0 and cell.y < map_height
 "
 
+[sub_resource type="GDScript" id=2]
+script/source = "extends Node2D
+
+onready var grid = $\"../\"
+
+func _process(delta):
+#	return
+	if Input.is_action_pressed(\"mouse_right\"):
+		if not grid.is_obstacle(grid.pixel2cell(get_local_mouse_position())):
+			grid.add_obstacle(grid.pixel2cell(get_local_mouse_position()))
+			print(grid.get_obstacles().size())
+		
+	
+	grid.clear_obstacles_canvas()
+	acl()
+	for i in grid.get_obstacles():
+		grid.fill_cell(i, Color.blue)
+	
+func acl():
+	grid.add_circle_lighter(grid.pixel2cell(get_local_mouse_position()), 40)
+"
+
 [node name="Main" type="Node2D"]
 
 [node name="Grid" type="Node2D" parent="."]
-position = Vector2( 296, 141 )
 script = SubResource( 1 )
 cell_size = 8
 map_width = 25
 map_height = 25
 map_color = Color( 1, 1, 1, 0.282353 )
+
+[node name="CppGrid" type="Node2D" parent="."]
+script = ExtResource( 1 )
+
+[node name="Control" type="Node2D" parent="CppGrid"]
+script = SubResource( 2 )
