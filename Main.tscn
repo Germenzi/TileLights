@@ -13,6 +13,16 @@ export var map_color = Color.white
 var surf
 var obstacles:PoolVector2Array = PoolVector2Array()
 
+# For performance comparison
+func add_lighter_2(cell:Vector2, distance:int):
+	var x0:int = cell.x
+	var y0:int = cell.y
+	
+	for y in range(-distance, distance+1):
+		for x in range(abs(y)-distance, distance-abs(y)+1):
+			if check_visible(Vector2(x0, y0), Vector2(x0+x, y0+y), obstacles):
+				light_cell(Vector2(x+x0, y+y0), (distance-abs(x)-abs(y))/float(distance))
+
 func check_visible(start:Vector2, goal:Vector2, obsts):
 	var steep = abs(goal.y-start.y) > abs(goal.x-start.x)
 	if steep:
@@ -47,7 +57,85 @@ func check_visible(start:Vector2, goal:Vector2, obsts):
 		
 	return true
 
-func add_lighter(cell:Vector2, distance:int):
+func add_circle_lighter(cell:Vector2, distance:int):
+	var x0:int = cell.x
+	var y0:int = cell.y
+	var obsts1 = []
+	var obsts2 = []
+	var quarts = []
+	
+	var flag1:bool
+	var flag2:bool
+	var flag3:bool
+	var flag4:bool
+	
+	var phi_x:float
+	var phi_y:float
+	
+	var x_scale:float
+	
+	for y in range(distance+1):
+		x_scale = sqrt(distance*distance - y*y)/distance
+		for x in range(distance*x_scale + 1):
+			phi_x = float(y)/x if x != 0 else distance*distance
+			phi_y = float(x)/y if y != 0 else distance*distance
+			
+			flag1 = true
+			flag2 = true
+			flag3 = true
+			flag4 = true
+			
+			if Vector2(x+x0, y+y0) in obstacles:
+				obsts1.append((y-0.5)/(x+0.5))
+				obsts2.append((x-0.5)/(y+0.5))
+				quarts.append(3)
+				flag3 = false
+			
+			if Vector2(-x+x0, -y+y0) in obstacles:
+				obsts1.append((y-0.5)/(x+0.5))
+				obsts2.append((x-0.5)/(y+0.5))
+				quarts.append(1)
+				flag1 = false
+				
+			if Vector2(-x+x0, y+y0) in obstacles:
+				obsts1.append((y-0.5)/(x+0.5))
+				obsts2.append((x-0.5)/(y+0.5))
+				quarts.append(2)
+				flag2 = false
+			
+			if Vector2(x+x0, -y+y0) in obstacles:
+				obsts1.append((y-0.5)/(x+0.5))
+				obsts2.append((x-0.5)/(y+0.5))
+				quarts.append(4)
+				flag4 = false
+				
+			for i in range(len(obsts1)):
+				if (phi_x > obsts1[i] and phi_y > obsts2[i]):
+					match quarts[i]:
+						3:
+							flag3 = false
+						1:
+							flag1 = false
+						2:
+							flag2 = false
+						4:
+							flag4 = false
+							
+			var lights = (distance - point_distance(Vector2(x0, y0), Vector2(x+x0, y+y0)))/distance
+			if x != 0:
+				if flag3:
+					light_cell(Vector2(x+x0, y+y0), lights)
+				if y != 0 and flag4:
+					light_cell(Vector2(x+x0, -y+y0), lights)
+			if y != 0 and flag1:
+				light_cell(Vector2(-x+x0, -y+y0), lights)
+			if flag2:
+				light_cell(Vector2(-x+x0, y+y0), lights)
+
+func point_distance(cell1:Vector2, cell2:Vector2):
+	return (cell1-cell2).length()
+
+func add_rhombous_lighter(cell:Vector2, distance:int):
 	var x0:int = cell.x
 	var y0:int = cell.y
 	var obsts1 = []
@@ -120,7 +208,7 @@ func add_lighter(cell:Vector2, distance:int):
 				light_cell(Vector2(-x+x0, y+y0), (distance-x-y)/float(distance))
 
 
-func add_direct_light(cell:Vector2, distance:int, angle:float):
+func add_direct_lighter(cell:Vector2, distance:int, angle:float):
 	var x0:int = cell.x
 	var y0:int = cell.y
 	var obsts1 = []
@@ -133,8 +221,11 @@ func add_direct_light(cell:Vector2, distance:int, angle:float):
 	var phi_x:float
 	var phi_y:float
 	
+	var y_scale:float
+	
 	for x in range(distance+1):
-		for y in range(int(x*tan(angle/2))+1):
+		y_scale = tan(angle/2)
+		for y in range(x*y_scale + 1):
 			
 			flag1 = true
 			flag2 = true
@@ -168,22 +259,7 @@ func add_direct_light(cell:Vector2, distance:int, angle:float):
 			if flag2 and y != 0:
 				light_cell(Vector2(x+x0, -y+y0), (distance-x)/float(distance))
 
-
-# For performance comparison
-func add_lighter_2(cell:Vector2, distance:int):
-	var x0:int = cell.x
-	var y0:int = cell.y
-	
-	for y in range(-distance, distance+1):
-		for x in range(abs(y)-distance, distance-abs(y)+1):
-			if check_visible(Vector2(x0, y0), Vector2(x0+x, y0+y), obstacles):
-				light_cell(Vector2(x+x0, y+y0), (distance-abs(x)-abs(y))/float(distance))
-	
-
 func _process(delta):
-	
-	if Input.is_action_just_pressed(\"mouse_middle\"):
-		add_lighter_2(pixel2cell(get_local_mouse_position()), 80)
 		
 	if Input.is_action_pressed(\"mouse_right\"):
 		obstacles.append(pixel2cell(get_local_mouse_position()))
@@ -194,10 +270,14 @@ func _process(delta):
 	if Input.is_action_just_pressed(\"ui_down\"):
 		obstacles = PoolVector2Array()
 	
+	# I used visual server for to get rid of _draw
+	# Updating canvas every frame is not necessary
+	
 	clear_lights()
-	add_lighter(pixel2cell(get_local_mouse_position()), 10)
-#	add_lighter_2(pixel2cell(get_local_mouse_position()), 30)
-#	add_direct_light(pixel2cell(get_local_mouse_position()), 60, PI/4)
+	# ctrl + k
+	add_circle_lighter(pixel2cell(get_local_mouse_position()), 40)
+#	add_rhombous_lighter(pixel2cell(get_local_mouse_position()), 40)
+#	add_direct_lighter(pixel2cell(get_local_mouse_position()), 80, PI/4)
 	
 	update()
 
@@ -206,19 +286,11 @@ func _ready():
 	VisualServer.canvas_item_set_parent(surf, get_canvas_item())
 
 func _draw():
-#	draw_grid()
 	for i in obstacles:
 		draw_rect(Rect2(cell2pixel(i), Vector2(1, 1)*cell_size), Color.red)
 		
 	draw_rect(Rect2(cell2pixel(pixel2cell(get_local_mouse_position())), Vector2(1, 1)*cell_size), Color.blue)
-
-func draw_grid():
-	for i in range(map_width+1):
-		draw_line(cell2pixel(Vector2(i, 0)), cell2pixel(Vector2(i, map_height)), map_color)
-		
-	for i in range(map_height+1):
-		draw_line(cell2pixel(Vector2(0, i)), cell2pixel(Vector2(map_width, i)), map_color)
-		
+	
 func cell2pixel(cell:Vector2):
 	return cell*cell_size
 	
