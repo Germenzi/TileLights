@@ -8,7 +8,7 @@ Support several lights types:
 <details>
   <summary>Direct Light</summary>
   
-![DirectLighter](https://user-images.githubusercontent.com/66486400/126052392-d9c96ed6-2994-4d85-ab73-d7f0737af1f3.gif)
+![DirectLighter](https://user-images.githubusercontent.com/66486400/126054709-fa068246-136f-4792-81d4-9f4a4c2920c4.gif)
 
 </details>
 
