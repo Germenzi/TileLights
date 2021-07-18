@@ -207,7 +207,7 @@ func add_rhombous_lighter(cell:Vector2, distance:int):
 			if flag2:
 				light_cell(Vector2(-x+x0, y+y0), (distance-x-y)/float(distance))
 
-
+# light_cone_angle
 func add_direct_lighter(cell:Vector2, distance:int, angle:float):
 	var x0:int = cell.x
 	var y0:int = cell.y
@@ -225,7 +225,7 @@ func add_direct_lighter(cell:Vector2, distance:int, angle:float):
 	
 	for x in range(distance+1):
 		y_scale = tan(angle/2)
-		for y in range(x*y_scale + 1):
+		for y in range(distance*y_scale + 1):
 			
 			flag1 = true
 			flag2 = true
@@ -245,19 +245,20 @@ func add_direct_lighter(cell:Vector2, distance:int, angle:float):
 				parts.append(2)
 				flag2 = false
 				
-			for i in range(len(obsts1)):
-				if phi_x > obsts1[i] and phi_y > obsts2[i]:
-					match parts[i]:
-						1:
-							flag1 = false
-						2:
-							flag2 = false
-			
-			if flag1:
-				light_cell(Vector2(x+x0, y+y0), (distance-x)/float(distance))
+			if y < x*tan(angle/2):
+				for i in range(len(obsts1)):
+					if phi_x > obsts1[i] and phi_y > obsts2[i]:
+						match parts[i]:
+							1:
+								flag1 = false
+							2:
+								flag2 = false
 				
-			if flag2 and y != 0:
-				light_cell(Vector2(x+x0, -y+y0), (distance-x)/float(distance))
+				if flag1:
+					light_cell(Vector2(x+x0, y+y0), (distance-x)/float(distance))
+					
+				if flag2 and y != 0:
+					light_cell(Vector2(x+x0, -y+y0), (distance-x)/float(distance))
 
 func _process(delta):
 		
@@ -275,9 +276,9 @@ func _process(delta):
 	
 	clear_lights()
 	# ctrl + k
-	add_circle_lighter(pixel2cell(get_local_mouse_position()), 40)
+#	add_circle_lighter(pixel2cell(get_local_mouse_position()), 25)
 #	add_rhombous_lighter(pixel2cell(get_local_mouse_position()), 40)
-#	add_direct_lighter(pixel2cell(get_local_mouse_position()), 80, PI/4)
+	add_direct_lighter(pixel2cell(get_local_mouse_position()), 80, PI/4)
 	
 	update()
 
