@@ -5,8 +5,6 @@ using namespace godot;
 void TileLighter::_register_methods(){
 	register_method("_process", &TileLighter::_process);
 
-	register_method("pixel2cell", &TileLighter::pixel2cell);
-	register_method("cell2pixel", &TileLighter::cell2pixel);
 	register_method("fill_cell", &TileLighter::fill_cell);
 	register_method("light_cell", &TileLighter::light_cell);
 	register_method("is_obstacle", &TileLighter::is_obstacle);
@@ -15,8 +13,6 @@ void TileLighter::_register_methods(){
 	register_method("get_obstacles", &TileLighter::get_obstacles);
 	register_method("clear_obstacles_canvas", &TileLighter::clear_obstacles_canvas);
 	register_method("add_circle_lighter", &TileLighter::add_circle_lighter);
-
-	register_property<TileLighter, int>("cell_size", &TileLighter::cell_size, 8);
 }
 
 void TileLighter::_process(float delta){
@@ -24,9 +20,6 @@ void TileLighter::_process(float delta){
 }
 
 void TileLighter::_init(){
-	cell_size = 8;
-	obstacles = Array();
-
 	surface = VisualServer::get_singleton()->canvas_item_create();
 	VisualServer::get_singleton()->canvas_item_set_parent(surface, get_canvas_item());
 }
@@ -39,17 +32,8 @@ TileLighter::~TileLighter(){
 
 }
 
-
-Vector2 TileLighter::pixel2cell(Vector2 pixel){
-	return (pixel/cell_size).floor();
-}
-
-Vector2 TileLighter::cell2pixel(Vector2 cell){
-	return cell*cell_size;
-}
-
 void TileLighter::fill_cell(Vector2 cell, Color color){
-	Rect2 rect = Rect2(cell2pixel(cell), Vector2(cell_size, cell_size));
+	Rect2 rect = Rect2(map_to_world(cell), get_cell_size());
 	VisualServer::get_singleton()->canvas_item_add_rect(surface, rect, color);
 }
 
@@ -58,19 +42,19 @@ void TileLighter::light_cell(Vector2 cell, float brightness){
 }
 
 bool TileLighter::is_obstacle(Vector2 cell){
-	return obstacles.has(cell);
+	return get_cellv(cell) != INVALID_CELL;
 }
 
 void TileLighter::add_obstacle(Vector2 cell){
-	obstacles.append(cell);
+	set_cellv(cell, 1);
 }
 
 void TileLighter::clear_obstacles(){
-	obstacles.clear();
+	clear();
 }
 
 Array TileLighter::get_obstacles(){
-	return obstacles;
+	return get_used_cells();
 }
 
 void TileLighter::clear_obstacles_canvas(){
@@ -84,9 +68,14 @@ void TileLighter::add_circle_lighter(Vector2 cell, int distance){
 	PoolRealArray obsts2 = PoolRealArray();
 	PoolIntArray quarts = PoolIntArray();
 
-	bool flag1, flag2, flag3, flag4;
+	bool is_visible1, is_visible2, is_visible3, is_visible4;
+	bool is_obst1, is_obst2, is_obst3, is_obst4;
+	bool is_obst1f, is_obst2f, is_obst3f, is_obst4f;
 
 	float phi_x, phi_y;
+	float c1, c2;
+
+	float o1, o2;
 
 	float x_scale;
 
@@ -106,65 +95,107 @@ void TileLighter::add_circle_lighter(Vector2 cell, int distance){
 			else
 				phi_y = distance*distance;
 
-			flag1 = true;
-			flag2 = true;
-			flag3 = true;
-			flag4 = true;
+			is_visible1 = true;
+			is_visible2 = true;
+			is_visible3 = true;
+			is_visible4 = true;
+
+			is_obst1 = false;
+			is_obst2 = false;
+			is_obst3 = false;
+			is_obst4 = false;
+
+			is_obst1f = false;
+			is_obst2f = false;
+			is_obst3f = false;
+			is_obst4f = false;
+
+			c1 = (y-0.5)/(x+0.5);
+			c2 = (x-0.5)/(y+0.5);
 
 			if (is_obstacle(Vector2(x+x0, y+y0))){
-				obsts1.append((y-0.5)/(x+0.5));
-				obsts2.append((x-0.5)/(y+0.5));
-				quarts.append(3);
-				flag3 = false;
+				is_obst3 = true;
 			}
 
 			if (is_obstacle(Vector2(-x+x0, -y+y0))){
-				obsts1.append((y-0.5)/(x+0.5));
-				obsts2.append((x-0.5)/(y+0.5));
-				quarts.append(1);
-				flag1 = false;
+				is_obst1 = true;
 			}
 
 			if (is_obstacle(Vector2(-x+x0, y+y0))){
-				obsts1.append((y-0.5)/(x+0.5));
-				obsts2.append((x-0.5)/(y+0.5));
-				quarts.append(2);
-				flag2 = false;
+				is_obst2 = true;
 			}
 
 			if (is_obstacle(Vector2(x+x0, -y+y0))){
-				obsts1.append((y-0.5)/(x+0.5));
-				obsts2.append((x-0.5)/(y+0.5));
-				quarts.append(4);
-				flag4 = false;
+				is_obst4 = true;
 			}
 
 			for(int i = 0; i < obsts1.size(); i++){
-				if (phi_x >= obsts1[i] && phi_y >= obsts2[i]){
-					if (quarts[i] == 3)
-						flag3 = false;
-					else if (quarts[i] == 1)
-						flag1 = false;
-					else if (quarts[i] == 2)
-						flag2 = false;
-					else if (quarts[i] == 4)
-						flag4 = false;
+				if (!is_visible1 && !is_visible2 && !is_visible3 && !is_visible4)
+					break;
+				o1 = obsts1[i];
+				o2 = obsts2[i];
+				if (phi_x > o1 && phi_y > o2){
+					if (quarts[i] == 3){
+						is_visible3 = false;
+						is_obst3f = is_obst3 && (c1 < o1 || c2 < o2);
+					}
+					else if (quarts[i] == 1){
+						is_visible1 = false;
+						is_obst1f = is_obst1 && (c1 < o1 || c2 < o2);
+					}
+					else if (quarts[i] == 2){
+						is_visible2 = false;
+						is_obst2f = is_obst2 && (c1 < o1 || c2 < o2);
+					}
+					else if (quarts[i] == 4){
+						is_visible4 = false;
+						is_obst4f = is_obst4 && (c1 < o1 || c2 < o2);
+					}
 				}
 			}
+			
+			if (is_visible1 && is_obst1 || is_obst1f){
+				obsts1.append(c1);
+				obsts2.append(c2);
+				quarts.append(1);
+				is_visible1 = false;
+			}
+				
+			if (is_visible2 && is_obst2 || is_obst2f){
+				obsts1.append(c1);
+				obsts2.append(c2);
+				quarts.append(2);
+				is_visible2 = false;
+			}
+				
+			if (is_visible3 && is_obst3 || is_obst3f){
+				obsts1.append(c1);
+				obsts2.append(c2);
+				quarts.append(3);
+				is_visible3 = false;
+			}
+				
+			if (is_visible4 && is_obst4 || is_obst4f){
+				obsts1.append(c1);
+				obsts2.append(c2);
+				quarts.append(4);
+				is_visible4 = false;
+			}
+			
 			lights = (distance-point_distance(Vector2(x0, y0), Vector2(x+x0, y+y0)))/distance;
 			if (x != 0){
-				if (flag3)
+				if (is_visible3)
 					light_cell(Vector2(x+x0, y+y0), lights);
 
-				if (y != 0 && flag4)
+				if (y != 0 && is_visible4)
 					light_cell(Vector2(x+x0, -y+y0), lights);
 
 			}
 
-			if (y != 0 && flag1)
+			if (y != 0 && is_visible1)
 				light_cell(Vector2(-x+x0, -y+y0), lights);
 
-			if (flag2)
+			if (is_visible2)
 				light_cell(Vector2(-x+x0, y+y0), lights);
 		}
 	}

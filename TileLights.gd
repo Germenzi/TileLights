@@ -51,6 +51,11 @@ func add_circle_lighter(cell:Vector2, distance:int):
 	var flag3:bool
 	var flag4:bool
 	
+	var is_obst1:bool
+	var is_obst2:bool
+	var is_obst3:bool
+	var is_obst4:bool
+	
 	var phi_x:float
 	var phi_y:float
 	
@@ -67,32 +72,44 @@ func add_circle_lighter(cell:Vector2, distance:int):
 			flag3 = true
 			flag4 = true
 			
+			is_obst1 = false
+			is_obst2 = false
+			is_obst3 = false
+			is_obst4 = false
+			
 			if Vector2(x+x0, y+y0) in obstacles:
 				obsts1.append((y-0.5)/(x+0.5))
 				obsts2.append((x-0.5)/(y+0.5))
 				quarts.append(3)
-				flag3 = false
+				is_obst3 = true
 			
 			if Vector2(-x+x0, -y+y0) in obstacles:
 				obsts1.append((y-0.5)/(x+0.5))
 				obsts2.append((x-0.5)/(y+0.5))
 				quarts.append(1)
-				flag1 = false
+				is_obst1 = true
 				
 			if Vector2(-x+x0, y+y0) in obstacles:
 				obsts1.append((y-0.5)/(x+0.5))
 				obsts2.append((x-0.5)/(y+0.5))
 				quarts.append(2)
-				flag2 = false
+				is_obst2 = true
 			
 			if Vector2(x+x0, -y+y0) in obstacles:
 				obsts1.append((y-0.5)/(x+0.5))
 				obsts2.append((x-0.5)/(y+0.5))
 				quarts.append(4)
-				flag4 = false
-
+				is_obst4 = true
+			
+			var n:float
+			
 			for i in range(len(obsts1)):
 				if (phi_x >= obsts1[i] and phi_y >= obsts2[i]):
+#					if phi_x != 0 and phi_y != 0:
+#						n = max(0.0, min(0.5, (phi_x-obsts1[i])/phi_x *(phi_y-obsts2[i])/phi_y))
+#					else:
+#						n = 0
+#
 					match quarts[i]:
 						3:
 							flag3 = false
@@ -103,19 +120,26 @@ func add_circle_lighter(cell:Vector2, distance:int):
 						4:
 							flag4 = false
 			
-
-			
 			var lights = (distance - point_distance(Vector2(x0, y0), Vector2(x+x0, y+y0)))/distance
 #			var lights = 1.0
 			if x != 0:
 				if flag3:
 					light_cell(Vector2(x+x0, y+y0), lights)
+				else:
+					light_cell(Vector2(x+x0, y+y0), n*lights)
 				if y != 0 and flag4:
 					light_cell(Vector2(x+x0, -y+y0), lights)
+				elif y != 0:
+					light_cell(Vector2(x+x0, -y+y0), n*lights)
 			if y != 0 and flag1:
 				light_cell(Vector2(-x+x0, -y+y0), lights)
+			elif y != 0:
+				light_cell(Vector2(-x+x0, -y+y0), n*lights)
+				
 			if flag2:
 				light_cell(Vector2(-x+x0, y+y0), lights)
+			else:
+				light_cell(Vector2(-x+x0, y+y0), n*lights)
 
 func point_distance(cell1:Vector2, cell2:Vector2):
 	return (cell1-cell2).length()
@@ -249,7 +273,7 @@ func add_direct_lighter(cell:Vector2, distance:int, angle:float):
 func _process(delta):
 	var mouse_cell = pixel2cell(get_local_mouse_position())
 	
-#	return # Pretty switcher between Gdscript and c++ implementations ;)
+	return # Pretty switcher between Gdscript and c++ implementations ;)
 
 	if Input.is_action_pressed("mouse_right"):
 		if not mouse_cell in obstacles:
