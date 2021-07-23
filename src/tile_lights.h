@@ -2,16 +2,18 @@
 #define TILELIGHTS_H
 
 #include <Godot.hpp>
-#include <TileMap.hpp>
+#include <Node2D.hpp>
 #include <VisualServer.hpp>
 
 namespace godot{
 
-class TileLighter : public TileMap{
-	GODOT_CLASS(TileLighter, TileMap)
+class TileLighter : public Node2D{
+	GODOT_CLASS(TileLighter, Node2D)
 
 private:
 	RID surface;
+	int cell_size;
+	Array obstacles;
 
 public:
 	static void _register_methods();
@@ -22,6 +24,9 @@ public:
 	void _init();
 
 	void _process(float delta);
+
+	Vector2 pixel2cell(Vector2 pixel);
+	Vector2 cell2pixel(Vector2 cell);
 
 	void light_cell(Vector2 cell, float brightness);
 	void fill_cell(Vector2 cell, Color color);
