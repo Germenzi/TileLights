@@ -13,6 +13,8 @@ void TileLighter::_register_methods(){
 	register_method("get_obstacles", &TileLighter::get_obstacles);
 	register_method("clear_obstacles_canvas", &TileLighter::clear_obstacles_canvas);
 	register_method("add_circle_lighter", &TileLighter::add_circle_lighter);
+	register_method("add_rhombous_lighter", &TileLighter::add_rhombous_lighter);
+	register_method("add_direct_lighter", &TileLighter::add_direct_lighter);
 	register_method("pixel2cell", &TileLighter::pixel2cell);
 	register_method("cell2pixel", &TileLighter::cell2pixel);
 
@@ -82,6 +84,222 @@ Vector2 TileLighter::pixel2cell(Vector2 pixel){
 Vector2 TileLighter::cell2pixel(Vector2 cell){
 	return cell*cell_size;
 }
+
+void TileLighter::add_direct_lighter(Vector2 cell, int distance, float angle){
+		int x0 = cell.x;
+	int y0 = cell.y;
+
+	PoolRealArray obsts_tg = PoolRealArray();
+	PoolRealArray obsts_ctg = PoolRealArray();
+	PoolIntArray quarts = PoolIntArray();
+
+	bool is_visible1, is_visible2;
+	bool is_obst1, is_obst2;
+
+	float tg, ctg;
+	float obst_tg, obst_ctg;
+
+	float o1, o2;
+
+	float brightness;
+
+	float coef = tan(angle/2);
+	int dist = coef*distance;
+
+	for(int x = 0; x <= distance; x++){
+		for(int y = 0; y < dist + 1; y++){
+
+			tg = x != 0 ? (float)y/x : distance*distance;
+			ctg = y != 0 ? (float)x/y : distance*distance;
+
+			is_obst1 = false;
+			is_obst2 = false;
+
+			obst_tg = (y-0.5)/(x+0.5);
+			obst_ctg = (x-0.5)/(y+0.5);
+
+			if (is_obstacle(Vector2(x+x0, -y+y0))){
+				is_obst1 = true;
+			}
+
+			if (is_obstacle(Vector2(x+x0, y+y0))){
+				is_obst2 = true;
+			}
+
+			is_visible1 = !is_obst1;
+			is_visible2 = !is_obst2;
+
+			for(int i = 0; i < obsts_tg.size(); i++){
+				o1 = obsts_tg[i];
+				o2 = obsts_ctg[i];
+				if (tg > o1 && ctg > o2){
+					if (quarts[i] == 1){
+						is_visible1 = false;
+						if (obst_tg > o1 && obst_ctg > o2)
+							is_obst1 = false;
+					}
+					else if (quarts[i] == 2){
+						is_visible2 = false;
+						if (obst_tg > o1 && obst_ctg > o2)
+							is_obst2 = false;
+					}
+				}
+			}
+			
+			if (is_obst1){
+				obsts_tg.append(obst_tg);
+				obsts_ctg.append(obst_ctg);
+				quarts.append(1);
+			}
+				
+			if (is_obst2){
+				obsts_tg.append(obst_tg);
+				obsts_ctg.append(obst_ctg);
+				quarts.append(2);
+			}
+			
+			if (y > coef*x)
+				continue;
+
+			brightness = (float)(distance-x-y)/distance;
+			if (brightness < 0)
+				brightness = 0.0;
+	
+
+			if (y != 0 && is_visible1)
+				light_cell(Vector2(x+x0, -y+y0), brightness);
+
+			if (is_visible2)
+				light_cell(Vector2(x+x0, y+y0), brightness);
+		}
+	}
+}
+
+void TileLighter::add_rhombous_lighter(Vector2 cell, int distance){
+	int x0 = cell.x;
+	int y0 = cell.y;
+
+	PoolRealArray obsts_tg = PoolRealArray();
+	PoolRealArray obsts_ctg = PoolRealArray();
+	PoolIntArray quarts = PoolIntArray();
+
+	bool is_visible1, is_visible2, is_visible3, is_visible4;
+	bool is_obst1, is_obst2, is_obst3, is_obst4;
+
+	float tg, ctg;
+	float obst_tg, obst_ctg;
+
+	float o1, o2;
+
+	float brightness;
+
+	for(int y = 0; y <= distance; y++){
+		for(int x = 0; x < distance-y + 1; x++){
+
+			tg = x != 0 ? (float)y/x : distance*distance;
+			ctg = y != 0 ? (float)x/y : distance*distance;
+
+			is_obst1 = false;
+			is_obst2 = false;
+			is_obst3 = false;
+			is_obst4 = false;
+
+			obst_tg = (y-0.5)/(x+0.5);
+			obst_ctg = (x-0.5)/(y+0.5);
+
+			if (is_obstacle(Vector2(x+x0, y+y0))){
+				is_obst3 = true;
+			}
+
+			if (is_obstacle(Vector2(-x+x0, -y+y0))){
+				is_obst1 = true;
+			}
+
+			if (is_obstacle(Vector2(-x+x0, y+y0))){
+				is_obst2 = true;
+			}
+
+			if (is_obstacle(Vector2(x+x0, -y+y0))){
+				is_obst4 = true;
+			}
+
+			is_visible1 = !is_obst1;
+			is_visible2 = !is_obst2;
+			is_visible3 = !is_obst3;
+			is_visible4 = !is_obst4;
+
+			for(int i = 0; i < obsts_tg.size(); i++){
+				o1 = obsts_tg[i];
+				o2 = obsts_ctg[i];
+				if (tg > o1 && ctg > o2){
+					
+					if (quarts[i] == 3){
+						is_visible3 = false;
+						if (obst_tg > o1 && obst_ctg > o2)
+							is_obst3 = false;
+					}
+					else if (quarts[i] == 1){
+						is_visible1 = false;
+						if (obst_tg > o1 && obst_ctg > o2)
+							is_obst1 = false;
+					}
+					else if (quarts[i] == 2){
+						is_visible2 = false;
+						if (obst_tg > o1 && obst_ctg > o2)
+							is_obst2 = false;
+					}
+					else if (quarts[i] == 4){
+						is_visible4 = false;
+						if (obst_tg > o1 && obst_ctg > o2)
+							is_obst4 = false;
+					}
+				}
+			}
+			
+			if (is_obst1){
+				obsts_tg.append(obst_tg);
+				obsts_ctg.append(obst_ctg);
+				quarts.append(1);
+			}
+				
+			if (is_obst2){
+				obsts_tg.append(obst_tg);
+				obsts_ctg.append(obst_ctg);
+				quarts.append(2);
+			}
+				
+			if (is_obst3){
+				obsts_tg.append(obst_tg);
+				obsts_ctg.append(obst_ctg);
+				quarts.append(3);
+			}
+				
+			if (is_obst4){
+				obsts_tg.append(obst_tg);
+				obsts_ctg.append(obst_ctg);
+				quarts.append(4);
+			}
+			
+			brightness = (float)(distance-x-y)/distance;
+			
+			if (x != 0){
+				if (is_visible3)
+					light_cell(Vector2(x+x0, y+y0), brightness);
+
+				if (y != 0 && is_visible4)
+					light_cell(Vector2(x+x0, -y+y0), brightness);
+
+			}
+
+			if (y != 0 && is_visible1)
+				light_cell(Vector2(-x+x0, -y+y0), brightness);
+
+			if (is_visible2)
+				light_cell(Vector2(-x+x0, y+y0), brightness);
+		}
+	}
+}
+
 
 void TileLighter::add_circle_lighter(Vector2 cell, int distance){
 	int x0 = cell.x;

@@ -39,6 +39,8 @@ public:
 	void clear_obstacles_canvas();
 
 	void add_circle_lighter(Vector2 cell, int distance);
+	void add_rhombous_lighter(Vector2 cell, int distance);
+	void add_direct_lighter(Vector2 cell, int distance, float angle);
 
 	float point_distance(Vector2 p1, Vector2 p2);
 };

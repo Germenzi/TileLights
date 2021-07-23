@@ -127,126 +127,195 @@ func add_circle_lighter(cell:Vector2, distance:int, color:Color=Color.white):
 func add_rhombous_lighter(cell:Vector2, distance:int):
 	var x0:int = cell.x
 	var y0:int = cell.y
-	var obsts1 = []
-	var obsts2 = []
-	var quarts = []
+	var obsts_ctg:PoolRealArray = PoolRealArray()
+	var obsts_tg:PoolRealArray = PoolRealArray()
+	var quarts:PoolByteArray = PoolByteArray()
 	
-	var flag1:bool
-	var flag2:bool
-	var flag3:bool
-	var flag4:bool
+	var tg:float
+	var ctg:float
 	
-	var phi_x:float
-	var phi_y:float
+	var obst_ctg:float
+	var obst_tg:float
+	
+	var is_visible1:bool
+	var is_visible2:bool
+	var is_visible3:bool
+	var is_visible4:bool
+	
+	var is_obst1:bool
+	var is_obst2:bool
+	var is_obst3:bool
+	var is_obst4:bool
+	
+	var brightness:float
 	
 	for y in range(distance+1):
 		for x in range(distance-y+1):
+			tg = float(y)/x if x != 0 else distance*distance
+			ctg = float(x)/y if y != 0 else distance*distance
 			
-			phi_x = float(y)/x if x != 0 else distance*distance
-			phi_y = float(x)/y if y != 0 else distance*distance
+			obst_ctg = (x-0.5)/(y+0.5)
+			obst_tg = (y-0.5)/(x+0.5)
 			
-			flag1 = true
-			flag2 = true
-			flag3 = true
-			flag4 = true
+			is_obst1 = false
+			is_obst2 = false
+			is_obst3 = false
+			is_obst4 = false
 			
-			if Vector2(x+x0, y+y0) in obstacles:
-				obsts1.append((y-0.5)/(x+0.5))
-				obsts2.append((x-0.5)/(y+0.5))
-				quarts.append(3)
-				flag3 = false
+			if is_obst(Vector2(x0+x, y0+y)):
+				is_obst1 = true
 			
-			if Vector2(-x+x0, -y+y0) in obstacles:
-				obsts1.append((y-0.5)/(x+0.5))
-				obsts2.append((x-0.5)/(y+0.5))
-				quarts.append(1)
-				flag1 = false
-				
-			if Vector2(-x+x0, y+y0) in obstacles:
-				obsts1.append((y-0.5)/(x+0.5))
-				obsts2.append((x-0.5)/(y+0.5))
-				quarts.append(2)
-				flag2 = false
+			if is_obst(Vector2(x0-x, y0-y)):
+				is_obst2 = true
 			
-			if Vector2(x+x0, -y+y0) in obstacles:
-				obsts1.append((y-0.5)/(x+0.5))
-				obsts2.append((x-0.5)/(y+0.5))
-				quarts.append(4)
-				flag4 = false
-				
-			for i in range(len(obsts1)):
-				if (phi_x >= obsts1[i] and phi_y >= obsts2[i]):
+			if is_obst(Vector2(x0+x, y0-y)):
+				is_obst3 = true
+			
+			if is_obst(Vector2(x0-x, y0+y)):
+				is_obst4 = true
+		
+			is_visible1 = not is_obst1
+			is_visible2 = not is_obst2
+			is_visible3 = not is_obst3
+			is_visible4 = not is_obst4
+			
+			for i in range(len(obsts_ctg)):
+				if tg > obsts_tg[i] and ctg > obsts_ctg[i]:
 					match quarts[i]:
-						3:
-							flag3 = false
 						1:
-							flag1 = false
+							is_visible1 = false
+							if obst_tg > obsts_tg[i] and obst_ctg > obsts_ctg[i]:
+								is_obst1 = false
 						2:
-							flag2 = false
+							is_visible2 = false
+							if obst_tg > obsts_tg[i] and obst_ctg > obsts_ctg[i]:
+								is_obst2 = false
+						3:
+							is_visible3 = false
+							if obst_tg > obsts_tg[i] and obst_ctg > obsts_ctg[i]:
+								is_obst3 = false
 						4:
-							flag4 = false
+							is_visible4 = false
+							if obst_tg > obsts_tg[i] and obst_ctg > obsts_ctg[i]:
+								is_obst4 = false
 			
-			if x != 0:
-				if flag3:
-					light_cell(Vector2(x+x0, y+y0), (distance-x-y)/float(distance))
-				if y != 0 and flag4:
-					light_cell(Vector2(x+x0, -y+y0), (distance-x-y)/float(distance))
-			if y != 0 and flag1:
-				light_cell(Vector2(-x+x0, -y+y0), (distance-x-y)/float(distance))
-			if flag2:
-				light_cell(Vector2(-x+x0, y+y0), (distance-x-y)/float(distance))
-	
+			if is_obst1:
+				obsts_tg.append(obst_tg)
+				obsts_ctg.append(obst_ctg)
+				quarts.append(1)
+				
+			if is_obst2:
+				obsts_tg.append(obst_tg)
+				obsts_ctg.append(obst_ctg)
+				quarts.append(2)
+				
+			if is_obst3:
+				obsts_tg.append(obst_tg)
+				obsts_ctg.append(obst_ctg)
+				quarts.append(3)
+				
+			if is_obst4:
+				obsts_tg.append(obst_tg)
+				obsts_ctg.append(obst_ctg)
+				quarts.append(4)
+				
+			brightness = float(distance-x-y)/distance
+			
+			if is_visible1:
+				light_cell(Vector2(x+x0, y+y0), brightness) 
+				
+			if is_visible2:
+				if x != 0:
+					light_cell(Vector2(-x+x0, -y+y0), brightness)
+					
+			if is_visible3:
+				if y != 0:
+					light_cell(Vector2(x+x0, -y+y0), brightness)
+				
+			if is_visible4:
+				if x != 0 and y != 0:
+					light_cell(Vector2(-x+x0, y+y0), brightness)
+					
+					
 func add_direct_lighter(cell:Vector2, distance:int, angle:float):
 	var x0:int = cell.x
 	var y0:int = cell.y
-	var obsts1 = []
-	var obsts2 = []
-	var parts = []
+	var obsts_ctg:PoolRealArray = PoolRealArray()
+	var obsts_tg:PoolRealArray = PoolRealArray()
+	var quarts:PoolByteArray = PoolByteArray()
 	
-	var flag1:bool
-	var flag2:bool
+	var tg:float
+	var ctg:float
 	
-	var phi_x:float
-	var phi_y:float
+	var obst_ctg:float
+	var obst_tg:float
 	
-	var y_scale:float
+	var is_visible1:bool
+	var is_visible2:bool
+	
+	var is_obst1:bool
+	var is_obst2:bool
+	
+	var brightness:float
+	
+	var coef:float = tan(angle/2)
+	var dist:int = distance*coef
 	
 	for x in range(distance+1):
-		y_scale = tan(angle/2)
-		for y in range(distance*y_scale + 1):
+		# This is necessary to take into account obstacles that cast a shadow, but can be missed
+		for y in range(dist + 1):
+			tg = float(y)/x if x != 0 else distance*distance
+			ctg = float(x)/y if y != 0 else distance*distance
 			
-			flag1 = true
-			flag2 = true
+			obst_ctg = (x-0.5)/(y+0.5)
+			obst_tg = (y-0.5)/(x+0.5)
 			
-			phi_x = float(y)/x if x != 0 else distance*distance
-			phi_y = float(x)/y if y != 0 else distance*distance
+			is_obst1 = false
+			is_obst2 = false
 			
-			if Vector2(x+x0, y+y0) in obstacles:
-				obsts1.append((y-0.5)/(x+0.5))
-				obsts2.append((x-0.5)/(y+0.5))
-				parts.append(1)
-				flag1 = false
+			if is_obst(Vector2(x0+x, y0+y)):
+				is_obst1 = true
+			
+			if is_obst(Vector2(x0+x, y0-y)):
+				is_obst2 = true
+			
+			is_visible1 = not is_obst1
+			is_visible2 = not is_obst2
+			
+			for i in range(len(obsts_ctg)):
+				if tg > obsts_tg[i] and ctg > obsts_ctg[i]:
+					match quarts[i]:
+						1:
+							is_visible1 = false
+							if obst_tg > obsts_tg[i] and obst_ctg > obsts_ctg[i]:
+								is_obst1 = false
+						2:
+							is_visible2 = false
+							if obst_tg > obsts_tg[i] and obst_ctg > obsts_ctg[i]:
+								is_obst2 = false
+			
+			if is_obst1:
+				obsts_tg.append(obst_tg)
+				obsts_ctg.append(obst_ctg)
+				quarts.append(1)
 				
-			if Vector2(x+x0, -y+y0) in obstacles:
-				obsts1.append((y-0.5)/(x+0.5))
-				obsts2.append((x-0.5)/(y+0.5))
-				parts.append(2)
-				flag2 = false
+			if is_obst2:
+				obsts_tg.append(obst_tg)
+				obsts_ctg.append(obst_ctg)
+				quarts.append(2)
 				
-			if y < x*tan(angle/2):
-				for i in range(len(obsts1)):
-					if phi_x >= obsts1[i] and phi_y >= obsts2[i]:
-						match parts[i]:
-							1:
-								flag1 = false
-							2:
-								flag2 = false
+			# And here we draw points that in light shape
+			if y > coef*x:
+				continue
 				
-				if flag1:
-					light_cell(Vector2(x+x0, y+y0), max((distance-x-y)/float(distance), 0.0))
-					
-				if flag2 and y != 0:
-					light_cell(Vector2(x+x0, -y+y0), max((distance-x-y)/float(distance), 0.0))
+			brightness = max(0.0, float(distance-x-y)/distance)
+			
+			if is_visible1:
+				light_cell(Vector2(x+x0, y+y0), brightness) 
+				
+			if is_visible2:
+				if y != 0:
+					light_cell(Vector2(x+x0, -y+y0), brightness)
 	
 func point_distance(cell1:Vector2, cell2:Vector2):
 	return (cell1-cell2).length()

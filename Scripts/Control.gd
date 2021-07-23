@@ -19,5 +19,7 @@ func _process(delta):
 	for i in grid.get_obstacles():
 		grid.fill_cell(i, Color.blue)
 		
-func acl(cell):
-	grid.add_circle_lighter(cell, 30)
+func acl(cell): # Need for checkable in profiler
+#	grid.add_circle_lighter(cell, 60)
+#	grid.add_rhombous_lighter(cell, 60)
+	grid.add_direct_lighter(cell, 60, PI/4)
